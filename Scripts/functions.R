@@ -317,7 +317,7 @@ SampleCovSNPs <- function ( gwas.data , match.pop , pop.names , bin.names , SNPs
 	#T.mat <- matrix ( rep ( c ( ( num.pops - 1 ) / num.pops , rep ( - 1 / ( num.pops ) , times = num.pops ) ) , times = num.pops ) , ncol = num.pops , nrow = num.pops )
 	gwas.cont.table <- table ( gwas.data [ , bin.names ] ) 
 	my.cov.bins <- which ( gwas.cont.table != 0 )
-	total.cov.reps <- ceiling ( 5000 / nrow ( gwas.data ) )
+	total.cov.reps <- ceiling ( SNPs.per.cycle / nrow ( gwas.data ) )
 	this.many <- total.cov.reps * gwas.cont.table	
 	
 	
