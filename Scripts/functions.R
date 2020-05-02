@@ -70,8 +70,8 @@ PolygenicAdaptationFunction <- function ( gwas.data.file , freqs.file , env.var.
 	F.inv <- solve ( F.mat )
 	C.inv <- solve ( t ( chol ( F.mat ) ) )
 	#load(file = "CodeForRelease/HeightTest/uncentered.cov.mat.RData")
-	epsilon.freqs <- tapply ( freqs$FRQ , freqs$SNP , mean )
-	add.gen.var <- sum ( gwas.data$EFF [ order ( gwas.data$SNP ) ]^2  * epsilon.freqs * ( 1 - epsilon.freqs ) )
+	epsilon.freqs <- tapply ( freqs$FRQ , freqs$SNP , mean ) # average frequency across populations
+	add.gen.var <- sum ( gwas.data$EFF [ order ( gwas.data$SNP ) ]^2  * epsilon.freqs * ( 1 - epsilon.freqs ) ) # additive genetic variance
 	
 	the.stats <- CalcStats ( 
 					freqs = matrix ( freqs$FRQ , nrow = num.pops ) ,
@@ -128,6 +128,7 @@ PolygenicAdaptationFunction <- function ( gwas.data.file , freqs.file , env.var.
 }
 
 GetOffCovMats <- function ( env.var.data , uncentered.cov.mat , effects , freqs ) {
+    # center genetic value and reestimate cov matrix for Identifying Outliers
 	#recover()
 	mat.cols <- list ()
 	add.vars.regional <- list ()
@@ -139,10 +140,12 @@ GetOffCovMats <- function ( env.var.data , uncentered.cov.mat , effects , freqs 
 		num.center.pops <- sum ( env.var.data$REG != i )
 		j <- 1
 		mat.cols [[ k ]] <- lapply ( env.var.data$REG , function ( x ) 
+                                    # construct Tr matrix
+                                    # refer to Identifying Outliers with Conditional MVN Distributions in the paper
 										if ( x != i ) { 
 											y <- rep ( - 1 / num.center.pops , num.pops ) ; 
 											y [ j ] <- ( num.center.pops - 1 ) / num.center.pops ; 
-											j <<- j + 1
+											j <<- j + 1 # super/scoping assignment: because j is out of function. Analogous to nonlocal keyword in python
 											return ( y ) 
 										} else { 
 											y <-  rep ( 0 , num.pops ) ;
@@ -155,8 +158,8 @@ GetOffCovMats <- function ( env.var.data , uncentered.cov.mat , effects , freqs 
 		add.vars.regional [[ k ]] <- 4 * sum ( epsilons * ( 1 - epsilons ) * effects ^2 )
 	k <- k + 1
 	}
-	T.mats <- lapply ( mat.cols , function ( x ) do.call ( cbind , x ) )
-	T.mats <- lapply ( T.mats , function ( x ) x [ - sample ( which ( x[1,] != 1 & x[1,] != 0 ) , 1 ) , ] )
+	T.mats <- lapply ( mat.cols , function ( x ) do.call ( cbind , x ) ) # cbind mat cols to matrix
+	T.mats <- lapply ( T.mats , function ( x ) x [ - sample ( which ( x[1,] != 1 & x[1,] != 0 ) , 1 ) , ] ) # randomly drop one non-test population
 	off.center.cov.mats <- lapply ( T.mats , function ( x ) x %*% uncentered.cov.mat %*% t ( x ) )
 	return ( list ( off.center.cov.mats , T.mats ) )
 }
@@ -283,13 +286,14 @@ CalcStats <- function ( freqs , effects , env.var.data , var , uncentered.cov.ma
 	return ( list ( Qx = Qx , Fst.comp = Fst.comp , LD.component = LD.comp , betas = betas , pearson.rs = pearson.rs , spearman.rhos = spearman.rhos , reg.Z = reg.Z.scores , ind.Z = ind.Z.scores ) ) 
 }
 ZStats <- function ( gvs , var , cov.mat , T.mat ) {
+    # Z test, refer to Equation 27 in the paper
 	#recover()
 	#cent.gvs <- T.mat %*% gvs
-	drop <- which ( apply ( T.mat , 2 , function ( x ) !any ( x <= 1 & x >= 0  ) ) ) # line related to figuring out which population i dropped in earlier steps
-	need <- which ( T.mat [ 1 , ] == 1 | T.mat [ 1 , ] == 0 )
-	conditioned <- seq_along ( gvs ) [ - c ( need , drop ) ]
-	shift.conditioned <- c ( conditioned [ conditioned < drop ] , conditioned [ conditioned > drop ] -1 )
-	shift.need <- ifelse ( need > drop , need - 1 , need )
+	drop <- which ( apply ( T.mat , 2 , function ( x ) !any ( x <= 1 & x >= 0  ) ) ) # line related to figuring out which population i dropped in earlier steps # dropped population's column (after excluding from the matrix) only has elements of -1/(M-q) (refer to Identifying Outliers with Conditional MVN Distributions in the paper)
+	need <- which ( T.mat [ 1 , ] == 1 | T.mat [ 1 , ] == 0 ) # populations tested for signal
+	conditioned <- seq_along ( gvs ) [ - c ( need , drop ) ] # populations the test conditioned on
+	shift.conditioned <- c ( conditioned [ conditioned < drop ] , conditioned [ conditioned > drop ] -1 ) # shift index because of dropping population
+	shift.need <- ifelse ( need > drop , need - 1 , need ) # shift index because of dropping population
 	cond.dist <- condNormal ( gvs [ conditioned ] , rep ( mean ( gvs [ - need ] ) , length ( gvs ) - 1 ) , var * cov.mat , shift.conditioned , shift.need )
 	my.Z <- ( sum ( gvs [ need ] ) - sum ( cond.dist$condMean ) ) / sqrt ( sum ( cond.dist$condVar ) )
 	return ( my.Z )
@@ -347,6 +351,7 @@ SampleCovSNPs <- function ( gwas.data , match.pop , pop.names , bin.names , SNPs
 		sampled.SNPs <- unlist ( sampled.SNPs )
 		write ( unlist ( sampled.SNPs ) , file = paste ( path , "/cov.SNPs" , k , sep = "" ) , ncolumns = 1 )
 		system ( paste ( "Scripts/sampleSNPs.pl " , path , "/cov.SNPs" , k , " " , full.dataset.file , " > " , path , "/cov.samples" , k , sep = "" ) )
+        # need unique SNP
 		sampled.cov.data <- read.table ( paste ( path , "/cov.samples" , k , sep = "" ) , stringsAsFactors = F , h = T )
 		sampled.cov.data <- sampled.cov.data [ , 1 : 5 ]
 		colnames ( sampled.cov.data ) <- c ( "SNP" , "CLST" , "A1" , "A2" , "FRQ" )
@@ -354,7 +359,7 @@ SampleCovSNPs <- function ( gwas.data , match.pop , pop.names , bin.names , SNPs
 		sampled.cov.data$FRQ <- as.numeric ( sampled.cov.data$FRQ )
 		#sampled.SNPs <- read.table ( paste ( path , "/cov.SNPs" , k , sep = "" ) , stringsAsFactors = F ) 
 		sampled.cov.data <- sampled.cov.data [ with ( sampled.cov.data , order ( SNP , CLST ) ) , ]
-		split.sampled.cov.data <- split ( sampled.cov.data$FRQ , sampled.cov.data$SNP )
+		split.sampled.cov.data <- split ( sampled.cov.data$FRQ , sampled.cov.data$SNP ) # split divides the data in the vector x into the groups defined by f
 		cov.freqs <- mapply ( rep , x = split.sampled.cov.data , times = sampled.SNPs.count )
 		snp.by.pop [[ k ]] <- t ( matrix ( unlist ( cov.freqs ) , nrow = num.pops ) )
 		epsilon.cov.snps [[ k ]] <- apply ( snp.by.pop [[ k ]] , 1 , mean )
