@@ -90,6 +90,12 @@ PolygenicAdaptationFunction <- function ( gwas.data.file , freqs.file , env.var.
 				)
 	rownames ( the.stats$reg.Z ) <- sprintf("%s %d", "Region", seq_len ( nrow ( the.stats$reg.Z ) ) )
 	colnames ( the.stats$reg.Z ) <- sprintf("%s %d", "Env File", seq_len ( ncol ( the.stats$reg.Z ) ) )
+	rownames ( the.stats$expect_need ) <- sprintf("%s %d", "Region", seq_len ( nrow ( the.stats$expect_need ) ) )
+	colnames ( the.stats$expect_need ) <- sprintf("%s %d", "Env File", seq_len ( ncol ( the.stats$expect_need ) ) )
+	rownames ( the.stats$real_need ) <- sprintf("%s %d", "Region", seq_len ( nrow ( the.stats$real_need ) ) )
+	colnames ( the.stats$real_need ) <- sprintf("%s %d", "Env File", seq_len ( ncol ( the.stats$real_need ) ) )
+	rownames ( the.stats$std_need ) <- sprintf("%s %d", "Region", seq_len ( nrow ( the.stats$std_need ) ) )
+	colnames ( the.stats$std_need ) <- sprintf("%s %d", "Env File", seq_len ( ncol ( the.stats$std_need ) ) )
 	names ( the.stats$ind.Z ) <- env.var.data[[1]]$CLST
 	#recover()
 	asymp.p.vals <- list()
@@ -278,12 +284,16 @@ CalcStats <- function ( freqs , effects , env.var.data , var , uncentered.cov.ma
 			THIS.COV = COV , THIS.TMAT = TMAT ) ,
 		COV = regional.off.center.cov.mats , TMAT = regional.off.center.T.mats
 	)
+    expect_need <- matrix(reg.Z.scores[seq(2,nrow(reg.Z.scores),4),]) # expected mean genetic value across populations need to do Z test
+    real_need <- matrix(reg.Z.scores[seq(3,nrow(reg.Z.scores),4),]) # real mean genetic value across populations need to do Z test
+    std_need <- matrix(reg.Z.scores[seq(4,nrow(reg.Z.scores),4),]) # std of mean genetic value across populations need to do Z test
+    reg.Z.scores <- matrix(reg.Z.scores[seq(1,nrow(reg.Z.scores),4),])
 	## individual Z scores
 	ind.Z.scores <- mapply ( function ( THIS.COV , THIS.TMAT ) 
-		ZStats ( gvs , var , THIS.COV , THIS.TMAT ) , 
+		ZStats ( gvs , var , THIS.COV , THIS.TMAT )[1] , 
 		THIS.COV = individual.off.center.cov.mats , THIS.TMAT = individual.off.center.T.mats 
 	)
-	return ( list ( Qx = Qx , Fst.comp = Fst.comp , LD.component = LD.comp , betas = betas , pearson.rs = pearson.rs , spearman.rhos = spearman.rhos , reg.Z = reg.Z.scores , ind.Z = ind.Z.scores ) ) 
+	return ( list ( Qx = Qx , Fst.comp = Fst.comp , LD.component = LD.comp , betas = betas , pearson.rs = pearson.rs , spearman.rhos = spearman.rhos , reg.Z = reg.Z.scores , ind.Z = ind.Z.scores, expect_need = expect_need, real_need=real_need, std_need=std_need ) ) 
 }
 ZStats <- function ( gvs , var , cov.mat , T.mat ) {
     # Z test, refer to Equation 27 in the paper
@@ -296,8 +306,8 @@ ZStats <- function ( gvs , var , cov.mat , T.mat ) {
 	shift.need <- ifelse ( need > drop , need - 1 , need ) # shift index because of dropping population
 	cond.dist <- condNormal ( gvs [ conditioned ] , rep ( mean ( gvs [ - need ] ) , length ( gvs ) - 1 ) , var * cov.mat , shift.conditioned , shift.need )
 	my.Z <- ( sum ( gvs [ need ] ) - sum ( cond.dist$condMean ) ) / sqrt ( sum ( cond.dist$condVar ) )
-	return ( my.Z )
-	
+	#return ( my.Z )
+	return ( c(my.Z, mean(cond.dist$condMean), mean(gvs[need]), sqrt ( sum ( cond.dist$condVar ))/length(need)) )
 }
 condNormal <- function(x.given, mu, sigma, given.ind, req.ind){
 	# Returns conditional mean and variance of x[req.ind] 
