@@ -134,7 +134,7 @@ PolygenicAdaptationFunction <- function ( gwas.data.file , freqs.file , env.var.
 }
 
 GetOffCovMats <- function ( env.var.data , uncentered.cov.mat , effects , freqs ) {
-    # center genetic value and reestimate cov matrix for Identifying Outliers
+	# center genetic value and reestimate cov matrix for Identifying Outliers
 	#recover()
 	mat.cols <- list ()
 	add.vars.regional <- list ()
@@ -146,8 +146,8 @@ GetOffCovMats <- function ( env.var.data , uncentered.cov.mat , effects , freqs 
 		num.center.pops <- sum ( env.var.data$REG != i )
 		j <- 1
 		mat.cols [[ k ]] <- lapply ( env.var.data$REG , function ( x ) 
-                                    # construct Tr matrix
-                                    # refer to Identifying Outliers with Conditional MVN Distributions in the paper
+									# construct Tr matrix
+									# refer to Identifying Outliers with Conditional MVN Distributions in the paper
 										if ( x != i ) { 
 											y <- rep ( - 1 / num.center.pops , num.pops ) ; 
 											y [ j ] <- ( num.center.pops - 1 ) / num.center.pops ; 
@@ -284,10 +284,10 @@ CalcStats <- function ( freqs , effects , env.var.data , var , uncentered.cov.ma
 			THIS.COV = COV , THIS.TMAT = TMAT ) ,
 		COV = regional.off.center.cov.mats , TMAT = regional.off.center.T.mats
 	)
-    expect_need <- matrix(reg.Z.scores[seq(2,nrow(reg.Z.scores),4),]) # expected mean genetic value across populations need to do Z test
-    real_need <- matrix(reg.Z.scores[seq(3,nrow(reg.Z.scores),4),]) # real mean genetic value across populations need to do Z test
-    std_need <- matrix(reg.Z.scores[seq(4,nrow(reg.Z.scores),4),]) # std of mean genetic value across populations need to do Z test
-    reg.Z.scores <- matrix(reg.Z.scores[seq(1,nrow(reg.Z.scores),4),])
+	expect_need <- matrix(reg.Z.scores[seq(2,nrow(reg.Z.scores),4),]) # expected mean genetic value across populations need to do Z test
+	real_need <- matrix(reg.Z.scores[seq(3,nrow(reg.Z.scores),4),]) # real mean genetic value across populations need to do Z test
+	std_need <- matrix(reg.Z.scores[seq(4,nrow(reg.Z.scores),4),]) # std of mean genetic value across populations need to do Z test
+	reg.Z.scores <- matrix(reg.Z.scores[seq(1,nrow(reg.Z.scores),4),])
 	## individual Z scores
 	ind.Z.scores <- mapply ( function ( THIS.COV , THIS.TMAT ) 
 		ZStats ( gvs , var , THIS.COV , THIS.TMAT )[1] , 
@@ -296,7 +296,7 @@ CalcStats <- function ( freqs , effects , env.var.data , var , uncentered.cov.ma
 	return ( list ( Qx = Qx , Fst.comp = Fst.comp , LD.component = LD.comp , betas = betas , pearson.rs = pearson.rs , spearman.rhos = spearman.rhos , reg.Z = reg.Z.scores , ind.Z = ind.Z.scores, expect_need = expect_need, real_need=real_need, std_need=std_need ) ) 
 }
 ZStats <- function ( gvs , var , cov.mat , T.mat ) {
-    # Z test, refer to Equation 27 in the paper
+	# Z test, refer to Equation 27 in the paper
 	#recover()
 	#cent.gvs <- T.mat %*% gvs
 	drop <- which ( apply ( T.mat , 2 , function ( x ) !any ( x <= 1 & x >= 0  ) ) ) # line related to figuring out which population i dropped in earlier steps # dropped population's column (after excluding from the matrix) only has elements of -1/(M-q) (refer to Identifying Outliers with Conditional MVN Distributions in the paper)
@@ -361,7 +361,7 @@ SampleCovSNPs <- function ( gwas.data , match.pop , pop.names , bin.names , SNPs
 		sampled.SNPs <- unlist ( sampled.SNPs )
 		write ( unlist ( sampled.SNPs ) , file = paste ( path , "/cov.SNPs" , k , sep = "" ) , ncolumns = 1 )
 		system ( paste ( "Scripts/sampleSNPs.pl " , path , "/cov.SNPs" , k , " " , full.dataset.file , " > " , path , "/cov.samples" , k , sep = "" ) )
-        # need unique SNP
+		# need unique SNP
 		sampled.cov.data <- read.table ( paste ( path , "/cov.samples" , k , sep = "" ) , stringsAsFactors = F , h = T )
 		sampled.cov.data <- sampled.cov.data [ , 1 : 5 ]
 		colnames ( sampled.cov.data ) <- c ( "SNP" , "CLST" , "A1" , "A2" , "FRQ" )
