@@ -141,6 +141,7 @@ GetOffCovMats <- function ( env.var.data , uncentered.cov.mat , effects , freqs 
 	add.vars.individual <- list ()
 	k <- 1
 	for ( i in sort ( unique ( env.var.data$REG ) ) ) {
+        # order regional.off matrixs by region name
 		
 		num.pops <- nrow ( env.var.data )
 		num.center.pops <- sum ( env.var.data$REG != i )
