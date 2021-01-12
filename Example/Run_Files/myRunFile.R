@@ -1,8 +1,7 @@
 #!/usr/bin/env Rscript
 #setwd("~/Documents/Academics/PolygenSel/CodeForRelease")
 #source ( "~/Documents/Academics/PolygenSel/CodeForRelease/Scripts/CreateTraitFile.R")				
-#source ( "Scripts/functions.R")
-source ( "/scratch/minhuic/bin/PolygenicAdaptationCode/Scripts/functions.R")
+source ( "Scripts/functions.R")
 #CreateTraitFile ( "Trait_Data/FilesForPaper/height.txt" , "Genome_Data/HapMapInHGDP_PositionsAndBValues")
 #RemoveSNPs ( "Trait_Data/FilesForPaper/height.txt" , "Trait_Data/FilesForPaper/height.HapMapInHGDP_PositionsAndBValues.freqs" , "Trait_Data/FilesForPaper/newheight.txt" )	
 #options ( error = recover)
